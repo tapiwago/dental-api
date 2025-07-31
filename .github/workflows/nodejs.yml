@@ -47,7 +47,7 @@ jobs:
 
       - name: Deploy to DigitalOcean
         env:
-          PROD_MONGODB_URI: ${{ secrets.PROD_MONGODB_URI }}
+          PROD_MONGODB_URI: ${{ env.PROD_MONGODB_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           ssh root@206.81.11.59
