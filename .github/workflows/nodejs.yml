@@ -45,6 +45,12 @@ jobs:
       - name: Add server to known_hosts
         run: ssh-keyscan -H 206.81.11.59 >> ~/.ssh/known_hosts
 
+      - name: Debug secrets
+        run: |
+          echo "PROD_MONGODB_URI: ${{ env.PROD_MONGODB_URI }}"
+          echo "JWT_SECRET: ${{ secrets.JWT_SECRET }}"
+          echo "DO_SSH_KEY: ${{ secrets.DO_SSH_KEY }}"
+
       - name: Deploy to DigitalOcean
         env:
           PROD_MONGODB_URI: ${{ env.PROD_MONGODB_URI }}
