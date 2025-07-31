@@ -199,3 +199,189 @@ exports.signinWithToken = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get all users
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+exports.getUsers = async (req, res) => {
+  try {
+    const users = await userService.getAllUsers();
+    
+    // Format users data to match frontend expectations
+    const formattedUsers = users.map(user => ({
+      id: user._id.toString(),
+      firstName: user.firstName,
+      lastName: user.lastName,
+      middleName: user.middleName,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      isActive: user.isActive,
+      lastLogin: user.lastLogin,
+      profilePicture: user.profilePicture || '',
+      department: user.department,
+      skills: user.skills,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    }));
+
+    res.json({
+      success: true,
+      users: formattedUsers
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve users'
+    });
+  }
+};
+
+/**
+ * Get user by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+exports.getUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await userService.getUserById(id);
+    
+    res.json({
+      success: true,
+      user: {
+        id: user._id.toString(),
+        firstName: user.firstName,
+        lastName: user.lastName,
+        middleName: user.middleName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        isActive: user.isActive,
+        lastLogin: user.lastLogin,
+        profilePicture: user.profilePicture || '',
+        department: user.department,
+        skills: user.skills,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve user'
+    });
+  }
+};
+
+/**
+ * Update user
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+exports.updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    
+    // Remove password from update data if empty
+    if (updateData.password === '') {
+      delete updateData.password;
+    }
+    
+    const user = await userService.updateUser(id, updateData);
+    
+    res.json({
+      success: true,
+      user: {
+        id: user._id.toString(),
+        firstName: user.firstName,
+        lastName: user.lastName,
+        middleName: user.middleName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        isActive: user.isActive,
+        lastLogin: user.lastLogin,
+        profilePicture: user.profilePicture || '',
+        department: user.department,
+        skills: user.skills,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('Update user error:', error);
+    
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    res.status(400).json({
+      success: false,
+      error: error.message || 'Failed to update user'
+    });
+  }
+};
+
+/**
+ * Delete user (deactivate)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await userService.deactivateUser(id);
+    
+    res.json({
+      success: true,
+      message: 'User deactivated successfully',
+      user: {
+        id: user._id.toString(),
+        firstName: user.firstName,
+        lastName: user.lastName,
+        middleName: user.middleName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        isActive: user.isActive,
+        lastLogin: user.lastLogin,
+        profilePicture: user.profilePicture || '',
+        department: user.department,
+        skills: user.skills,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to deactivate user'
+    });
+  }
+};
