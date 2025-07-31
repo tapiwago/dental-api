@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
   firstName: { type: String, required: true, trim: true },
   lastName: { type: String, required: true, trim: true },
   middleName: { type: String, trim: true },
-  email: { type: String, required: true, unique: true, trim: true },
+  email: { type: String, unique: true, trim: true, sparse: true }, // Made optional and sparse
   password: { type: String, required: true },
   phone: { type: String, trim: true },
   role: { 

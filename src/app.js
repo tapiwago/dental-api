@@ -145,7 +145,7 @@ const analyticsRoutes = require('./routes/analyticsRoutes');
 
 const app = express();
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/dental_db';
 const DB_NAME = process.env.DB_NAME || 'dental_db';
 
