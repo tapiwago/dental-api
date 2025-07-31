@@ -1,0 +1,69 @@
+name: Node.js CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Lint
+      run: |
+        if [ -f package.json ] && grep -q 'lint' package.json; then npm run lint; else echo "No lint script"; fi
+
+    - name: Run tests
+      run: |
+        if [ -f package.json ] && grep -q 'test' package.json; then npm test; else echo "No test script"; fi
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.DO_SSH_KEY }}
+          known_hosts: '174.138.47.248'
+
+      - name: Add server to known_hosts
+        run: ssh-keyscan -H 174.138.47.248 >> ~/.ssh/known_hosts
+
+      - name: Deploy to DigitalOcean
+        env:
+          PROD_MONGODB_URI: ${{ secrets.PROD_MONGODB_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          ssh root@174.138.47.248 '
+            set -e
+            if [ ! -d /root/dental-api ]; then
+              git clone https://github.com/${{ github.repository }} /root/dental-api
+            else
+              cd /root/dental-api && git pull origin main
+            fi
+            cd /root/dental-api
+            echo "PROD_MONGODB_URI=${PROD_MONGODB_URI}" > .env
+            echo "JWT_SECRET=${JWT_SECRET}" >> .env
+            npm install
+            npm install -g pm2 || true
+            pm2 start src/app.js --name dental-api || pm2 restart dental-api
+            pm2 save
+          '
