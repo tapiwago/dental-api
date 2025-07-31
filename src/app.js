@@ -13,15 +13,110 @@ const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Dental API',
-      version: '1.0.0',
-      description: 'API documentation for Dental API',
+      title: 'Dental Intelligence Onboarding API',
+      version: '2.0.0',
+      description: 'Comprehensive Node.js API for managing client onboarding processes with advanced workflow guidance, notifications, and analytics.',
+      contact: {
+        name: 'Dental Intelligence API Support',
+        email: 'support@dentalintelligence.com'
+      }
     },
     servers: [
-      { url: 'http://localhost:' + (process.env.PORT || 3000) }
+      { 
+        url: 'http://localhost:' + (process.env.PORT || 3000),
+        description: 'Development server'
+      }
     ],
+    tags: [
+      {
+        name: 'Onboarding Cases',
+        description: 'Main onboarding case management operations'
+      },
+      {
+        name: 'Onboarding Cases - Workflow',
+        description: 'Workflow-specific operations for onboarding cases'
+      },
+      {
+        name: 'Onboarding Cases - Analytics',
+        description: 'Analytics and reporting for onboarding cases'
+      },
+      {
+        name: 'Tasks',
+        description: 'Task management operations'
+      },
+      {
+        name: 'Tasks - Workflow',
+        description: 'Champion and team member task workflow operations'
+      },
+      {
+        name: 'Tasks - Analytics',
+        description: 'Task performance and analytics'
+      },
+      {
+        name: 'Clients',
+        description: 'Client and practice management'
+      },
+      {
+        name: 'Stages',
+        description: 'Onboarding stage management'
+      },
+      {
+        name: 'Documents',
+        description: 'Document upload and management'
+      },
+      {
+        name: 'Guide Steps',
+        description: 'Workflow guide step management'
+      },
+      {
+        name: 'Guide Steps - Contextual Hints',
+        description: 'Smart contextual hints and guidance system'
+      },
+      {
+        name: 'Guide Steps - Analytics',
+        description: 'Guide effectiveness and usage analytics'
+      },
+      {
+        name: 'Workflow Guides',
+        description: 'Custom workflow guide creation and management'
+      },
+      {
+        name: 'Notifications',
+        description: 'Multi-channel notification system'
+      },
+      {
+        name: 'Analytics',
+        description: 'Comprehensive reporting and analytics'
+      },
+      {
+        name: 'Audit Logs',
+        description: 'Audit trail and compliance logging'
+      },
+      {
+        name: 'Templates',
+        description: 'Reusable onboarding templates'
+      },
+      {
+        name: 'Users',
+        description: 'User management and authentication'
+      }
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
+    },
+    security: [
+      {
+        bearerAuth: []
+      }
+    ]
   },
-  apis: ['./src/routes/*.js'],
+  apis: ['./src/routes/*.js', './routes/*.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -329,11 +424,18 @@ app.get('/', (req, res) => {
       api: '/api',
       // Core onboarding features
       onboardingCases: {
+        // Basic operations
         list: 'GET /api/onboarding-cases',
         create: 'POST /api/onboarding-cases',
         get: 'GET /api/onboarding-cases/:id',
         update: 'PUT /api/onboarding-cases/:id',
-        delete: 'DELETE /api/onboarding-cases/:id'
+        delete: 'DELETE /api/onboarding-cases/:id',
+        // Workflow operations
+        assignTeam: 'POST /api/onboarding-cases/:id/assign-team',
+        updateStatus: 'PUT /api/onboarding-cases/:id/status',
+        dashboard: 'GET /api/onboarding-cases/dashboard/summary',
+        progressReport: 'GET /api/onboarding-cases/:id/progress-report',
+        sendReminders: 'POST /api/onboarding-cases/:id/send-reminders'
       },
       clients: {
         list: 'GET /api/clients',
@@ -350,11 +452,18 @@ app.get('/', (req, res) => {
         delete: 'DELETE /api/stages/:id'
       },
       tasks: {
+        // Basic operations
         list: 'GET /api/tasks',
         create: 'POST /api/tasks',
         get: 'GET /api/tasks/:id',
         update: 'PUT /api/tasks/:id',
-        delete: 'DELETE /api/tasks/:id'
+        delete: 'DELETE /api/tasks/:id',
+        // Workflow operations
+        updateStatus: 'PUT /api/tasks/:id/status',
+        myTasks: 'GET /api/tasks/user/:userId/my-tasks',
+        assign: 'POST /api/tasks/:id/assign',
+        addComment: 'POST /api/tasks/:id/comments',
+        analytics: 'GET /api/tasks/analytics'
       },
       documents: {
         list: 'GET /api/documents',
@@ -372,11 +481,19 @@ app.get('/', (req, res) => {
         delete: 'DELETE /api/workflow-guides/:id'
       },
       guideSteps: {
+        // Basic operations
         list: 'GET /api/guide-steps',
         create: 'POST /api/guide-steps',
         get: 'GET /api/guide-steps/:id',
         update: 'PUT /api/guide-steps/:id',
-        delete: 'DELETE /api/guide-steps/:id'
+        delete: 'DELETE /api/guide-steps/:id',
+        // Contextual hints
+        stageHints: 'GET /api/guide-steps/hints/stage/:stageId',
+        taskHints: 'GET /api/guide-steps/hints/task/:taskId',
+        markViewed: 'PUT /api/guide-steps/hints/:stepId/viewed',
+        feedback: 'POST /api/guide-steps/hints/:stepId/feedback',
+        caseSummary: 'GET /api/guide-steps/case/:caseId/summary',
+        caseUsage: 'GET /api/guide-steps/case/:caseId/usage'
       },
       caseGuideLinks: {
         list: 'GET /api/case-guide-links',
