@@ -1,0 +1,59 @@
+# Docker Compose for Dental API
+# Note: This configuration uses local MongoDB container
+# To use MongoDB Atlas instead, update the API service environment variables
+
+services:
+  # MongoDB Database
+  mongo:
+    image: mongo:7.0
+    container_name: dental-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: dental_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    networks:
+      - dental-network
+
+  # Node.js API
+  api:
+    build: .
+    container_name: dental-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # For local MongoDB container (default):
+      MONGODB_URI: mongodb://admin:password123@mongo:27017/dental_db?authSource=admin
+      # For MongoDB Atlas (uncomment and update with your credentials):
+      # MONGODB_URI: mongodb+srv://your_username:your_password@cluster0.payfq.mongodb.net/dental_db?retryWrites=true&w=majority&appName=Cluster0
+      DB_NAME: dental_db
+    ports:
+      - "3000:3000"
+    # Comment out 'depends_on' if using MongoDB Atlas
+    depends_on:
+      - mongo
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - dental-network
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mongo_data:
+    driver: local
+
+networks:
+  dental-network:
+    driver: bridge
