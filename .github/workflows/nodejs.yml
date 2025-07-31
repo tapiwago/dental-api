@@ -40,17 +40,17 @@ jobs:
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.DO_SSH_KEY }}
-          known_hosts: '174.138.47.248'
+          known_hosts: '162.243.167.35'
 
       - name: Add server to known_hosts
-        run: ssh-keyscan -H 174.138.47.248 >> ~/.ssh/known_hosts
+        run: ssh-keyscan -H 162.243.167.35 >> ~/.ssh/known_hosts
 
       - name: Deploy to DigitalOcean
         env:
           PROD_MONGODB_URI: ${{ secrets.PROD_MONGODB_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
-          ssh root@174.138.47.248 '
+          ssh root@162.243.167.35 '
             set -e
             if [ ! -d /root/dental-api ]; then
               git clone https://github.com/${{ github.repository }} /root/dental-api
