@@ -17,55 +17,51 @@ A simple Node.js Express API with MongoDB integration, designed to run in Docker
 - `GET /health` - Health check endpoint with database status
 - `GET /api` - Basic API endpoint
 
-## Quick Start with Docker
 
-### Prerequisites
-- Docker and Docker Compose installed
+## Quick Start
 
-### Running the Application
+### Option 1: Run with Docker
+
+**Prerequisites:** Docker and Docker Compose installed
 
 1. Clone the repository and navigate to the project directory:
-```bash
-cd dental-api
-```
-
+   ```powershell
+   git clone https://github.com/tapiwago/dental-api.git
+   cd dental-api
+   ```
 2. Build and start the containers:
-```bash
-docker-compose up --build
-```
-
+   ```powershell
+   docker-compose up --build
+   ```
 3. The API will be available at:
    - API: http://localhost:3000
    - Health Check: http://localhost:3000/health
    - MongoDB: localhost:27017
 
-### Environment Variables
+### Option 2: Run Locally (without Docker)
 
-The application uses the following environment variables:
+**Prerequisites:** Node.js (v18 or higher), MongoDB running locally or MongoDB Atlas
+
+1. Install dependencies:
+   ```powershell
+   npm install
+   ```
+2. Update the `.env` file with your MongoDB connection string if needed
+3. Start the API server:
+   ```powershell
+   npm start
+   ```
+   Or for development with auto-reload:
+   ```powershell
+   npm run dev
+   ```
+
+### Environment Variables
 
 - `NODE_ENV` - Environment (development/production)
 - `PORT` - Server port (default: 3000)
 - `MONGODB_URI` - MongoDB connection string
 
-## Local Development
-
-### Prerequisites
-- Node.js (v18 or higher)
-- MongoDB running locally
-
-### Setup
-
-1. Install dependencies:
-```bash
-npm install
-```
-
-2. Start MongoDB locally or update the `.env` file with your MongoDB connection string
-
-3. Run the development server:
-```bash
-npm run dev
-```
 
 ## Health Check Response
 
