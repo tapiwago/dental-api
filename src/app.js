@@ -80,6 +80,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Enhanced logging for database connection
 console.log('Starting Dental API...');
