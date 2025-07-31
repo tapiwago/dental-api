@@ -5,8 +5,19 @@ const userSchema = new mongoose.Schema({
   firstName: { type: String, required: true, trim: true },
   lastName: { type: String, required: true, trim: true },
   middleName: { type: String, trim: true },
+  email: { type: String, required: true, unique: true, trim: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['admin', 'user', 'doctor'], default: 'user' },
+  phone: { type: String, trim: true },
+  role: { 
+    type: String, 
+    enum: ['Admin', 'Champion', 'Team Member', 'Senior Champion'], 
+    default: 'Team Member' 
+  },
+  isActive: { type: Boolean, default: true },
+  lastLogin: { type: Date },
+  profilePicture: { type: String },
+  department: { type: String },
+  skills: [{ type: String }],
 }, {
   timestamps: true
 });

@@ -32,6 +32,22 @@ const userRoutes = require('./routes/userRoutes');
 // Office location routes
 // const officeLocationRoutes = require('./routes/officeLocationRoutes');
 
+// Onboarding and workflow guide routes
+const onboardingCaseRoutes = require('./routes/onboardingCaseRoutes');
+const clientRoutes = require('./routes/clientRoutes');
+const stageRoutes = require('./routes/stageRoutes');
+const taskRoutes = require('./routes/taskRoutes');
+const documentRoutes = require('./routes/documentRoutes');
+const workflowGuideRoutes = require('./routes/workflowGuideRoutes');
+const guideStepRoutes = require('./routes/guideStepRoutes');
+const caseGuideLinkRoutes = require('./routes/caseGuideLinkRoutes');
+
+// System and admin routes
+const notificationRoutes = require('./routes/notificationRoutes');
+const auditLogRoutes = require('./routes/auditLogRoutes');
+const templateRoutes = require('./routes/templateRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
+
 const app = express();
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 const PORT = process.env.PORT || 3000;
@@ -48,6 +64,22 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/users', userRoutes);
 // Office location API routes
 // app.use('/api/offices', officeLocationRoutes);
+
+// Onboarding and workflow guide API routes
+app.use('/api/onboarding-cases', onboardingCaseRoutes);
+app.use('/api/clients', clientRoutes);
+app.use('/api/stages', stageRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/workflow-guides', workflowGuideRoutes);
+app.use('/api/guide-steps', guideStepRoutes);
+app.use('/api/case-guide-links', caseGuideLinkRoutes);
+
+// System and admin API routes
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/templates', templateRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Enhanced logging for database connection
 console.log('Starting Dental API...');
@@ -274,9 +306,17 @@ app.get('/health', async (req, res) => {
 // Basic API routes
 app.get('/', (req, res) => {
   res.json({
-    message: 'Welcome to Dental API',
-    version: '1.0.0',
+    message: 'Welcome to Dental Intelligence Onboarding API',
+    version: '2.0.0',
     features: [
+      'Comprehensive Onboarding Tracker',
+      'Custom Workflow Guides & Contextual Hints',
+      'Role-based Access Control',
+      'Real-time Notifications',
+      'Audit Logging & Compliance',
+      'Analytics & Reporting',
+      'Template Management',
+      'Document Management',
       'Health monitoring',
       'Patient management',
       'MongoDB integration',
@@ -284,16 +324,116 @@ app.get('/', (req, res) => {
     ],
     endpoints: {
       health: '/health',
+      documentation: '/api-docs',
       api: '/api',
+      // Core onboarding features
+      onboardingCases: {
+        list: 'GET /api/onboarding-cases',
+        create: 'POST /api/onboarding-cases',
+        get: 'GET /api/onboarding-cases/:id',
+        update: 'PUT /api/onboarding-cases/:id',
+        delete: 'DELETE /api/onboarding-cases/:id'
+      },
+      clients: {
+        list: 'GET /api/clients',
+        create: 'POST /api/clients',
+        get: 'GET /api/clients/:id',
+        update: 'PUT /api/clients/:id',
+        delete: 'DELETE /api/clients/:id'
+      },
+      stages: {
+        list: 'GET /api/stages',
+        create: 'POST /api/stages',
+        get: 'GET /api/stages/:id',
+        update: 'PUT /api/stages/:id',
+        delete: 'DELETE /api/stages/:id'
+      },
+      tasks: {
+        list: 'GET /api/tasks',
+        create: 'POST /api/tasks',
+        get: 'GET /api/tasks/:id',
+        update: 'PUT /api/tasks/:id',
+        delete: 'DELETE /api/tasks/:id'
+      },
+      documents: {
+        list: 'GET /api/documents',
+        create: 'POST /api/documents',
+        get: 'GET /api/documents/:id',
+        update: 'PUT /api/documents/:id',
+        delete: 'DELETE /api/documents/:id'
+      },
+      // Workflow guide features
+      workflowGuides: {
+        list: 'GET /api/workflow-guides',
+        create: 'POST /api/workflow-guides',
+        get: 'GET /api/workflow-guides/:id',
+        update: 'PUT /api/workflow-guides/:id',
+        delete: 'DELETE /api/workflow-guides/:id'
+      },
+      guideSteps: {
+        list: 'GET /api/guide-steps',
+        create: 'POST /api/guide-steps',
+        get: 'GET /api/guide-steps/:id',
+        update: 'PUT /api/guide-steps/:id',
+        delete: 'DELETE /api/guide-steps/:id'
+      },
+      caseGuideLinks: {
+        list: 'GET /api/case-guide-links',
+        create: 'POST /api/case-guide-links',
+        get: 'GET /api/case-guide-links/:id',
+        update: 'PUT /api/case-guide-links/:id',
+        delete: 'DELETE /api/case-guide-links/:id'
+      },
+      // System features
+      notifications: {
+        list: 'GET /api/notifications',
+        create: 'POST /api/notifications',
+        userNotifications: 'GET /api/notifications/user/:userId',
+        markRead: 'PUT /api/notifications/:id/read',
+        dismiss: 'PUT /api/notifications/:id/dismiss'
+      },
+      auditLogs: {
+        list: 'GET /api/audit-logs',
+        entity: 'GET /api/audit-logs/entity/:entityType/:entityId',
+        securityAlerts: 'GET /api/audit-logs/security/alerts',
+        complianceReport: 'GET /api/audit-logs/compliance/report'
+      },
+      templates: {
+        list: 'GET /api/templates',
+        create: 'POST /api/templates',
+        clone: 'POST /api/templates/:id/clone',
+        publish: 'PUT /api/templates/:id/publish',
+        recommendations: 'GET /api/templates/recommendations'
+      },
+      analytics: {
+        onboarding: 'GET /api/analytics/onboarding',
+        tasks: 'GET /api/analytics/tasks',
+        userPerformance: 'GET /api/analytics/users/:userId/performance',
+        guides: 'GET /api/analytics/guides',
+        dashboard: 'GET /api/analytics/dashboard'
+      },
+      // Legacy endpoints
       patients: {
         list: 'GET /api/patients',
         create: 'POST /api/patients',
         get: 'GET /api/patients/:id'
+      },
+      users: {
+        list: 'GET /api/users',
+        create: 'POST /api/users',
+        get: 'GET /api/users/:id',
+        authenticate: 'POST /api/users/auth/login'
       }
     },
     database: {
       status: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
       autoCreate: true
+    },
+    userRoles: {
+      Admin: 'Full system access, can manage all onboarding cases and guides',
+      Champion: 'Owns stages/tasks, can update status and manage assigned work',
+      'Team Member': 'Can update assigned tasks and upload documents',
+      'Senior Champion': 'Can create and manage workflow guides'
     }
   });
 });
@@ -301,15 +441,39 @@ app.get('/', (req, res) => {
 // API routes placeholder
 app.get('/api', (req, res) => {
   res.json({
-    message: 'Dental API is running',
+    message: 'Dental Intelligence Onboarding API is running',
     timestamp: new Date().toISOString(),
+    version: '2.0.0',
+    features: {
+      onboardingTracker: 'Complete onboarding case management with stages and tasks',
+      workflowGuides: 'Custom guides with contextual hints and tutorials',
+      notifications: 'Real-time notifications for task assignments and updates',
+      analytics: 'Comprehensive reporting and performance metrics',
+      auditLogging: 'Full audit trail for compliance and security',
+      templates: 'Reusable templates for onboarding processes',
+      roleBasedAccess: 'Granular permissions for different user types'
+    },
     endpoints: {
-      patients: {
-        list: 'GET /api/patients',
-        create: 'POST /api/patients',
-        get: 'GET /api/patients/:id'
-      }
-    }
+      // Core onboarding
+      onboardingCases: '/api/onboarding-cases',
+      clients: '/api/clients',
+      stages: '/api/stages',
+      tasks: '/api/tasks',
+      documents: '/api/documents',
+      // Workflow guides
+      workflowGuides: '/api/workflow-guides',
+      guideSteps: '/api/guide-steps',
+      caseGuideLinks: '/api/case-guide-links',
+      // System
+      notifications: '/api/notifications',
+      auditLogs: '/api/audit-logs',
+      templates: '/api/templates',
+      analytics: '/api/analytics',
+      // Legacy
+      patients: '/api/patients',
+      users: '/api/users'
+    },
+    documentation: '/api-docs'
   });
 });
 
