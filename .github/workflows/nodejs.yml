@@ -52,7 +52,7 @@ jobs:
 
           echo "DO_SSH_KEY: ${{ secrets.DO_SSH_KEY }}"
 
-          
+
 
       - name: Deploy to DigitalOcean
         env:
@@ -62,9 +62,9 @@ jobs:
           ssh root@206.81.11.59
             set -e
             if [ ! -d /root/dental-api ]; then
-              git clone https://github.com/${{ github.repository }} /root/dental-api
+              git clone git@github.com:${{ github.repository }} /root/dental-api
             else
-              cd /root/dental-api && git pull origin main
+              cd /root/dental-api && git pull git@github.com:${{ github.repository }} main
             fi
             cd /root/dental-api
             echo "PROD_MONGODB_URI=${PROD_MONGODB_URI}" > .env

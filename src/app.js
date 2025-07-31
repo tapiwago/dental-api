@@ -30,7 +30,7 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 // User routes
 const userRoutes = require('./routes/userRoutes');
 // Office location routes
-const officeLocationRoutes = require('./routes/officeLocationRoutes');
+// const officeLocationRoutes = require('./routes/officeLocationRoutes');
 
 const app = express();
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -47,7 +47,7 @@ app.use(express.urlencoded({ extended: true }));
 // User API routes
 app.use('/api/users', userRoutes);
 // Office location API routes
-app.use('/api/offices', officeLocationRoutes);
+// app.use('/api/offices', officeLocationRoutes);
 
 // Enhanced logging for database connection
 console.log('Starting Dental API...');
