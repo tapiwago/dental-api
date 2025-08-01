@@ -59,7 +59,7 @@ jobs:
           PROD_MONGODB_URI: ${{ env.PROD_MONGODB_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
-          ssh root@206.81.11.59
+          ssh root@206.81.11.59 << 'EOF'
             set -e
             if [ ! -d /root/dental-api ]; then
               git clone git@github.com:${{ github.repository }} /root/dental-api
@@ -67,10 +67,10 @@ jobs:
               cd /root/dental-api && git pull git@github.com:${{ github.repository }} main
             fi
             cd /root/dental-api
-            echo "PROD_MONGODB_URI=${PROD_MONGODB_URI}" > .env
-            echo "JWT_SECRET=${JWT_SECRET}" >> .env
+            echo "PROD_MONGODB_URI=${{ env.PROD_MONGODB_URI }}" > .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
             npm install
             npm install -g pm2 || true
             pm2 start src/app.js --name dental-api || pm2 restart dental-api
             pm2 save
-          '
+          EOF
