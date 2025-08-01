@@ -154,10 +154,24 @@ app.use(helmet());
 
 // CORS configuration
 const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000'
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'https://dental-6wxqseggc-tapiwagos-projects.vercel.app'
+    ];
+    
+    // Check if origin is in allowed list or matches Vercel pattern
+    if (allowedOrigins.includes(origin) || 
+        origin.match(/^https:\/\/dental-.*-tapiwagos-projects\.vercel\.app$/)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
