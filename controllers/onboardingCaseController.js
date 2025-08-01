@@ -6,6 +6,7 @@ const User = require('../models/User');
 const Client = require('../models/Client');
 const NotificationService = require('../services/NotificationService');
 const AuditLog = require('../models/AuditLog');
+const { v4: uuidv4 } = require('uuid');
 
 // Basic CRUD operations
 exports.create = async (req, res) => {
@@ -19,7 +20,7 @@ exports.create = async (req, res) => {
     
     // Create audit log
     await AuditLog.create({
-      logId: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      logId: uuidv4(),
       entityType: 'OnboardingCase',
       entityId: onboardingCase._id,
       action: 'CREATE',
@@ -116,7 +117,7 @@ exports.getById = async (req, res) => {
 
     // Get stages and tasks for this case
     const stages = await Stage.find({ onboardingCaseId: req.params.id })
-      .populate('assignedTo', 'name email')
+      .populate('championId', 'firstName lastName email')
       .sort({ sequence: 1 });
 
     const tasks = await Task.find({ onboardingCaseId: req.params.id })
@@ -164,7 +165,7 @@ exports.update = async (req, res) => {
 
     // Create audit log
     await AuditLog.create({
-      logId: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      logId: uuidv4(),
       entityType: 'OnboardingCase',
       entityId: onboardingCase._id,
       action: 'UPDATE',
@@ -207,7 +208,7 @@ exports.delete = async (req, res) => {
 
     // Create audit log
     await AuditLog.create({
-      logId: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      logId: uuidv4(),
       entityType: 'OnboardingCase',
       entityId: req.params.id,
       action: 'DELETE',
@@ -259,7 +260,7 @@ exports.assignTeam = async (req, res) => {
 
     // Create audit log
     await AuditLog.create({
-      logId: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      logId: uuidv4(),
       entityType: 'OnboardingCase',
       entityId: onboardingCase._id,
       action: 'ASSIGN_TEAM',
@@ -298,7 +299,7 @@ exports.updateStatus = async (req, res) => {
 
     // Create audit log
     await AuditLog.create({
-      logId: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      logId: uuidv4(),
       entityType: 'OnboardingCase',
       entityId: onboardingCase._id,
       action: 'STATUS_UPDATE',
@@ -512,7 +513,7 @@ exports.sendReminders = async (req, res) => {
 
     // Create audit log
     await AuditLog.create({
-      logId: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      logId: uuidv4(),
       entityType: 'OnboardingCase',
       entityId: caseId,
       action: 'SEND_REMINDERS',
