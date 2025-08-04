@@ -2,7 +2,7 @@ const Task = require('../models/Task');
 const Document = require('../models/Document');
 const OnboardingCase = require('../models/OnboardingCase');
 const Stage = require('../models/Stage');
-const NotificationService = require('../services/NotificationService');
+const NotificationService = require('../services/notificationService');
 const AuditLog = require('../models/AuditLog');
 const { v4: uuidv4 } = require('uuid');
 
