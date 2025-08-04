@@ -161,7 +161,14 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'http://127.0.0.1:3000',
-      'https://dental-6wxqseggc-tapiwagos-projects.vercel.app'
+      'https://dental-6wxqseggc-tapiwagos-projects.vercel.app',
+      // Ubuntu server endpoints
+      'http://your-server-ip:3000',
+      'https://your-domain.com',
+      'https://your-domain.com:3000',
+      // Add your specific Ubuntu server IP/domain here
+      'http://143.198.148.241:3000',
+      'https://143.198.148.241:3000'
     ];
     
     // Check if origin is in allowed list or matches Vercel pattern
