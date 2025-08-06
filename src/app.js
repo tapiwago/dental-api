@@ -2,8 +2,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
-const https = require('https');
-const fs = require('fs');
 require('dotenv').config();
 
 
@@ -147,51 +145,13 @@ const analyticsRoutes = require('./routes/analyticsRoutes');
 
 const app = express();
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/dental_db';
 const DB_NAME = process.env.DB_NAME || 'dental_db';
 
 // Middleware
 app.use(helmet());
-
-// CORS configuration
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'https://dental-6wxqseggc-tapiwagos-projects.vercel.app',
-      // Production HTTPS endpoints
-      'https://your-domain.com',
-      'https://www.your-domain.com',
-      'https://api.your-domain.com',
-      // Ubuntu server endpoints with HTTPS
-      'https://your-server-ip:3000',
-      'https://your-server-ip:443',
-      // Fallback HTTP for development
-      'http://your-server-ip:3000',
-      'http://143.198.148.241:3000',
-      'https://143.198.148.241:3000'
-    ];
-    
-    // Check if origin is in allowed list or matches Vercel pattern
-    if (allowedOrigins.includes(origin) || 
-        origin.match(/^https:\/\/dental-.*-tapiwagos-projects\.vercel\.app$/)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200
-};
-
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -721,35 +681,10 @@ app.use('*', (req, res) => {
   });
 });
 
-// Start server with optional HTTPS support
-const HTTP_PORT = process.env.PORT || 5000;
-const HTTPS_PORT = process.env.HTTPS_PORT || 5443;
-
-// Start HTTP server
-app.listen(HTTP_PORT, '0.0.0.0', () => {
-  console.log(`Dental API HTTP server is running on port ${HTTP_PORT}`);
-  console.log(`Health check available at: http://localhost:${HTTP_PORT}/health`);
+// Start server
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Dental API server is running on port ${PORT}`);
+  console.log(`Health check available at: http://localhost:${PORT}/health`);
 });
-
-// Start HTTPS server if SSL certificates are available
-if (process.env.SSL_CERT_PATH && process.env.SSL_KEY_PATH) {
-  try {
-    const httpsOptions = {
-      cert: fs.readFileSync(process.env.SSL_CERT_PATH),
-      key: fs.readFileSync(process.env.SSL_KEY_PATH)
-    };
-
-    https.createServer(httpsOptions, app).listen(HTTPS_PORT, '0.0.0.0', () => {
-      console.log(`Dental API HTTPS server is running on port ${HTTPS_PORT}`);
-      console.log(`Health check available at: https://localhost:${HTTPS_PORT}/health`);
-    });
-  } catch (error) {
-    console.log(`HTTPS server not started: ${error.message}`);
-    console.log('API running on HTTP only');
-  }
-} else {
-  console.log('SSL certificates not configured. API running on HTTP only');
-  console.log('To enable HTTPS, set SSL_CERT_PATH and SSL_KEY_PATH environment variables');
-}
 
 module.exports = app;
