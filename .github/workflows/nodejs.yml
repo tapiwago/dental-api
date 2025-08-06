@@ -45,18 +45,9 @@ jobs:
       - name: Add server to known_hosts
         run: ssh-keyscan -H 134.209.121.112 >> ~/.ssh/known_hosts
 
-      - name: Debug secrets
-        run: |
-          echo "PROD_MONGODB_URI: ${{ env.PROD_MONGODB_URI }}"
-          echo "JWT_SECRET: ${{ secrets.JWT_SECRET }}"
-
-          echo "DO_SSH_KEY: ${{ secrets.DO_SSH_KEY }}"
-
-
-
       - name: Deploy to DigitalOcean
         env:
-          PROD_MONGODB_URI: ${{ secrets.PROD_MONGODB_URI }}
+          MONGODB_URI: ${{ secrets.PROD_MONGODB_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           ssh root@134.209.121.112 << 'EOF'
@@ -67,10 +58,15 @@ jobs:
               cd /root/dental-api && git pull origin main
             fi
             cd /root/dental-api
-            echo "PROD_MONGODB_URI=${{ secrets.PROD_MONGODB_URI }}" > .env
+            echo "NODE_ENV=production" > .env
+            echo "PORT=5000" >> .env
+            echo "MONGODB_URI=${{ secrets.PROD_MONGODB_URI }}" >> .env
+            echo "DB_NAME=dental_db" >> .env
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
             npm install
             npm install -g pm2 || true
             pm2 start src/app.js --name dental-api || pm2 restart dental-api
             pm2 save
+            echo "🚀 Backend deployment completed successfully!"
+            echo "API URL: http://134.209.121.112:5000"
           EOF

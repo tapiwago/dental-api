@@ -259,6 +259,33 @@ async function initializeDatabase() {
     // Import the Patient model to ensure collection exists
     const Patient = require('./models/Patient');
     
+    // Import the User model to create default user
+    const User = require('../models/User');
+    
+    // Check if users collection exists and has data
+    const userCount = await User.countDocuments();
+    
+    if (userCount === 0) {
+      console.log('👤 Creating default admin user...');
+      
+      // Create default admin user
+      const defaultUser = new User({
+        firstName: "Tapiwa",
+        lastName: "Gomo",
+        email: "tapiwago311@gmail.com",
+        password: "tapiwa123", // This will be hashed automatically by the pre-save hook
+        role: "Admin",
+        department: "Administration",
+        skills: ["Leadership", "Project Management", "System Administration"],
+        isActive: true
+      });
+      
+      await defaultUser.save();
+      console.log('✓ Created default admin user: Tapiwa Gomo');
+    } else {
+      console.log(`✓ Found ${userCount} existing users in database`);
+    }
+    
     // Check if patients collection exists and has data
     const patientCount = await Patient.countDocuments();
     
