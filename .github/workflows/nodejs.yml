@@ -56,18 +56,18 @@ jobs:
 
       - name: Deploy to DigitalOcean
         env:
-          PROD_MONGODB_URI: ${{ env.PROD_MONGODB_URI }}
+          PROD_MONGODB_URI: ${{ secrets.PROD_MONGODB_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           ssh root@134.209.121.112 << 'EOF'
             set -e
             if [ ! -d /root/dental-api ]; then
-              git clone git@github.com:${{ github.repository }} /root/dental-api
+              git clone https://github.com/tapiwago/dental-api.git /root/dental-api
             else
-              cd /root/dental-api && git pull git@github.com:${{ github.repository }} main
+              cd /root/dental-api && git pull origin main
             fi
             cd /root/dental-api
-            echo "PROD_MONGODB_URI=${{ env.PROD_MONGODB_URI }}" > .env
+            echo "PROD_MONGODB_URI=${{ secrets.PROD_MONGODB_URI }}" > .env
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
             npm install
             npm install -g pm2 || true
