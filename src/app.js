@@ -151,9 +151,28 @@ const DB_NAME = process.env.DB_NAME || 'dental_db';
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+
+// Configure CORS to allow both local development and production
+const corsOptions = {
+  origin: [
+    'http://localhost:3000',  // Local development
+    'http://localhost:5173',  // Vite dev server
+    'http://134.209.121.112', // Production frontend
+    'http://134.209.121.112:80', // Production frontend with port
+    'http://10.116.0.2',      // Internal network
+    'http://10.116.0.2:80'    // Internal network with port
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
 
 // User API routes
 app.use('/api/users', userRoutes);
