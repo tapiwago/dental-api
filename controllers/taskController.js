@@ -2,9 +2,8 @@ const Task = require('../models/Task');
 const Document = require('../models/Document');
 const OnboardingCase = require('../models/OnboardingCase');
 const Stage = require('../models/Stage');
-const NotificationService = require('../services/notificationService');
+const NotificationService = require('../services/NotificationService');
 const AuditLog = require('../models/AuditLog');
-const { v4: uuidv4 } = require('uuid');
 
 // Basic CRUD operations
 exports.create = async (req, res) => {
@@ -18,7 +17,6 @@ exports.create = async (req, res) => {
 
     // Create audit log
     await AuditLog.create({
-      logId: uuidv4(),
       entityType: 'Task',
       entityId: task._id,
       action: 'CREATE',
@@ -30,14 +28,16 @@ exports.create = async (req, res) => {
 
     // Send notification to assigned user
     if (task.assignedTo) {
-      await NotificationService.createNotification({
-        recipientId: task.assignedTo,
+      await NotificationService.create({
         title: 'New Task Assigned',
         message: `You have been assigned a new task: "${task.name}"`,
-        type: 'TaskAssigned',
+        type: 'Assignment',
         priority: task.priority === 'Critical' ? 'High' : 'Medium',
-        relatedEntityType: 'Task',
-        relatedEntityId: task._id
+        userId: task.assignedTo,
+        relatedEntity: {
+          entityType: 'Task',
+          entityId: task._id
+        }
       });
     }
 
@@ -171,14 +171,16 @@ exports.update = async (req, res) => {
       ].filter(id => id.toString() !== req.body.updatedBy);
 
       for (const userId of notificationRecipients) {
-        await NotificationService.createNotification({
-          recipientId: userId,
+        await NotificationService.create({
           title: 'Task Status Updated',
           message: `Task "${task.name}" status changed from ${oldTask.status} to ${task.status}`,
           type: 'StatusUpdate',
           priority: 'Medium',
-          relatedEntityType: 'Task',
-          relatedEntityId: task._id
+          userId: userId,
+          relatedEntity: {
+            entityType: 'Task',
+            entityId: task._id
+          }
         });
       }
     }
@@ -271,14 +273,16 @@ exports.updateStatus = async (req, res) => {
     ].filter(id => id.toString() !== updatedBy);
 
     for (const stakeholder of stakeholders) {
-      await NotificationService.createNotification({
-        recipientId: stakeholder,
+      await NotificationService.create({
         title: 'Task Status Updated',
         message: `Task "${task.name}" was ${status.toLowerCase()} by ${task.assignedTo.name}${comments ? '. Notes: ' + comments : ''}`,
         type: 'StatusUpdate',
         priority: status === 'Completed' ? 'Medium' : 'Low',
-        relatedEntityType: 'Task',
-        relatedEntityId: task._id
+        userId: stakeholder,
+        relatedEntity: {
+          entityType: 'Task',
+          entityId: task._id
+        }
       });
     }
 
@@ -372,14 +376,16 @@ exports.assignTask = async (req, res) => {
     });
 
     // Send notification to assigned user
-    await NotificationService.createNotification({
-      recipientId: assignedTo,
+    await NotificationService.create({
       title: 'Task Assigned',
       message: `You have been assigned to task: "${task.name}" in case "${task.onboardingCaseId.title}"`,
-      type: 'TaskAssigned',
+      type: 'Assignment',
       priority: task.priority === 'Critical' ? 'High' : 'Medium',
-      relatedEntityType: 'Task',
-      relatedEntityId: task._id
+      userId: assignedTo,
+      relatedEntity: {
+        entityType: 'Task',
+        entityId: task._id
+      }
     });
 
     res.json({

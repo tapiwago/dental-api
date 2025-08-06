@@ -4,23 +4,22 @@ const Task = require('../models/Task');
 const Document = require('../models/Document');
 const User = require('../models/User');
 const Client = require('../models/Client');
-const NotificationService = require('../services/notificationService');
+const NotificationService = require('../services/NotificationService');
 const AuditLog = require('../models/AuditLog');
-const { v4: uuidv4 } = require('uuid');
 
 // Basic CRUD operations
 exports.create = async (req, res) => {
   try {
     const onboardingCase = new OnboardingCase({
       ...req.body,
-      createdBy: req.body.adminId || req.body.createdBy
+      createdBy: req.body.adminId || req.body.createdBy,
+      status: 'Planning'
     });
     
     await onboardingCase.save();
     
     // Create audit log
     await AuditLog.create({
-      logId: uuidv4(),
       entityType: 'OnboardingCase',
       entityId: onboardingCase._id,
       action: 'CREATE',
@@ -32,21 +31,22 @@ exports.create = async (req, res) => {
 
     // Send notification to client
     if (onboardingCase.clientId) {
-      await NotificationService.createNotification({
+      await NotificationService.create({
         title: 'Onboarding Case Created',
-        message: `Your onboarding case "${onboardingCase.caseId}" has been created and is now ready to start.`,
-        type: 'System',
+        message: `Your onboarding case "${onboardingCase.title}" has been created and is now in planning phase.`,
+        type: 'Info',
         priority: 'Medium',
-        recipientId: onboardingCase.clientId,
-        relatedEntityType: 'OnboardingCase',
-        relatedEntityId: onboardingCase._id
+        userId: onboardingCase.clientId,
+        relatedEntity: {
+          entityType: 'OnboardingCase',
+          entityId: onboardingCase._id
+        }
       });
     }
 
     const populatedCase = await OnboardingCase.findById(onboardingCase._id)
       .populate('clientId', 'name email')
-      .populate('createdBy', 'firstName lastName email')
-      .populate('assignedChampion', 'firstName lastName email role');
+      .populate('createdBy', 'name email');
 
     res.status(201).json({
       success: true,
@@ -83,7 +83,7 @@ exports.getAll = async (req, res) => {
     const cases = await OnboardingCase.find(filter)
       .populate('clientId', 'name email contactInfo')
       .populate('createdBy', 'name email role')
-      .populate('assignedChampion', 'firstName lastName email role')
+      .populate('assignedTeam', 'name email role')
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit));
@@ -110,14 +110,14 @@ exports.getById = async (req, res) => {
     const onboardingCase = await OnboardingCase.findById(req.params.id)
       .populate('clientId')
       .populate('createdBy', 'name email role')
-      .populate('assignedChampion', 'firstName lastName email role')
+      .populate('assignedTeam', 'name email role')
       .populate('linkedGuides', 'title description category');
 
     if (!onboardingCase) return res.status(404).json({ error: 'Onboarding case not found' });
 
     // Get stages and tasks for this case
     const stages = await Stage.find({ onboardingCaseId: req.params.id })
-      .populate('championId', 'firstName lastName email')
+      .populate('assignedTo', 'name email')
       .sort({ sequence: 1 });
 
     const tasks = await Task.find({ onboardingCaseId: req.params.id })
@@ -161,11 +161,10 @@ exports.update = async (req, res) => {
       { ...req.body, lastModified: new Date() }, 
       { new: true }
     ).populate('clientId', 'name email')
-     .populate('assignedChampion', 'firstName lastName email role');
+     .populate('assignedTeam', 'name email role');
 
     // Create audit log
     await AuditLog.create({
-      logId: uuidv4(),
       entityType: 'OnboardingCase',
       entityId: onboardingCase._id,
       action: 'UPDATE',
@@ -180,14 +179,16 @@ exports.update = async (req, res) => {
 
     // Send notifications if status changed
     if (oldCase.status !== onboardingCase.status) {
-      await NotificationService.createNotification({
+      await NotificationService.create({
         title: 'Case Status Updated',
-        message: `Onboarding case "${onboardingCase.caseId}" status changed from ${oldCase.status} to ${onboardingCase.status}`,
-        type: 'StatusUpdate',
+        message: `Onboarding case "${onboardingCase.title}" status changed from ${oldCase.status} to ${onboardingCase.status}`,
+        type: 'Info',
         priority: 'Medium',
-        recipientId: onboardingCase.clientId,
-        relatedEntityType: 'OnboardingCase',
-        relatedEntityId: onboardingCase._id
+        userId: onboardingCase.clientId._id,
+        relatedEntity: {
+          entityType: 'OnboardingCase',
+          entityId: onboardingCase._id
+        }
       });
     }
 
@@ -208,7 +209,6 @@ exports.delete = async (req, res) => {
 
     // Create audit log
     await AuditLog.create({
-      logId: uuidv4(),
       entityType: 'OnboardingCase',
       entityId: req.params.id,
       action: 'DELETE',
@@ -241,26 +241,27 @@ exports.assignTeam = async (req, res) => {
         lastModified: new Date()
       },
       { new: true }
-    ).populate('assignedChampion', 'firstName lastName email role');
+    ).populate('assignedTeam', 'name email role');
 
     if (!onboardingCase) return res.status(404).json({ error: 'Onboarding case not found' });
 
     // Send notifications to assigned team members
     for (const teamMemberId of teamMemberIds) {
-      await NotificationService.createNotification({
+      await NotificationService.create({
         title: 'Assigned to Onboarding Case',
-        message: `You have been assigned to onboarding case: "${onboardingCase.caseId}"`,
-        type: 'TaskAssigned',
+        message: `You have been assigned to onboarding case: "${onboardingCase.title}"`,
+        type: 'Assignment',
         priority: 'High',
-        recipientId: teamMemberId,
-        relatedEntityType: 'OnboardingCase',
-        relatedEntityId: onboardingCase._id
+        userId: teamMemberId,
+        relatedEntity: {
+          entityType: 'OnboardingCase',
+          entityId: onboardingCase._id
+        }
       });
     }
 
     // Create audit log
     await AuditLog.create({
-      logId: uuidv4(),
       entityType: 'OnboardingCase',
       entityId: onboardingCase._id,
       action: 'ASSIGN_TEAM',
@@ -299,7 +300,6 @@ exports.updateStatus = async (req, res) => {
 
     // Create audit log
     await AuditLog.create({
-      logId: uuidv4(),
       entityType: 'OnboardingCase',
       entityId: onboardingCase._id,
       action: 'STATUS_UPDATE',
@@ -320,14 +320,16 @@ exports.updateStatus = async (req, res) => {
     ];
 
     for (const stakeholder of stakeholders) {
-      await NotificationService.createNotification({
+      await NotificationService.create({
         title: 'Case Status Updated',
-        message: `Onboarding case "${onboardingCase.caseId}" status updated to: ${status}${comments ? '. Notes: ' + comments : ''}`,
+        message: `Onboarding case "${onboardingCase.title}" status updated to: ${status}${comments ? '. Notes: ' + comments : ''}`,
         type: 'StatusUpdate',
         priority: status === 'Completed' ? 'High' : 'Medium',
-        recipientId: stakeholder,
-        relatedEntityType: 'OnboardingCase',
-        relatedEntityId: onboardingCase._id
+        userId: stakeholder,
+        relatedEntity: {
+          entityType: 'OnboardingCase',
+          entityId: onboardingCase._id
+        }
       });
     }
 
@@ -367,7 +369,7 @@ exports.getDashboard = async (req, res) => {
     overdueDate.setDays(overdueDate.getDate() - 30); // Cases older than 30 days
 
     const overdueCases = await OnboardingCase.find({
-      status: { $in: ['Not Started', 'In Progress'] },
+      status: { $in: ['Planning', 'In Progress'] },
       expectedCompletionDate: { $lt: new Date() }
     }).populate('clientId', 'name');
 
@@ -498,14 +500,16 @@ exports.sendReminders = async (req, res) => {
     // Send reminders to assigned team members
     for (const task of overdueTasks) {
       if (task.assignedTo) {
-        await NotificationService.createNotification({
+        await NotificationService.create({
           title: 'Overdue Task Reminder',
-          message: `Task "${task.name}" in case "${onboardingCase.caseId}" is overdue. Please update the status.`,
+          message: `Task "${task.name}" in case "${onboardingCase.title}" is overdue. Please update the status.`,
           type: 'Reminder',
           priority: 'High',
-          recipientId: task.assignedTo._id,
-          relatedEntityType: 'Task',
-          relatedEntityId: task._id
+          userId: task.assignedTo._id,
+          relatedEntity: {
+            entityType: 'Task',
+            entityId: task._id
+          }
         });
         sentCount++;
       }
@@ -513,7 +517,6 @@ exports.sendReminders = async (req, res) => {
 
     // Create audit log
     await AuditLog.create({
-      logId: uuidv4(),
       entityType: 'OnboardingCase',
       entityId: caseId,
       action: 'SEND_REMINDERS',
