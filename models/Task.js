@@ -41,6 +41,9 @@ const taskSchema = new mongoose.Schema({
     value: mongoose.Schema.Types.Mixed,
     type: { type: String, enum: ['text', 'number', 'date', 'boolean', 'select'] }
   }]
-}, { timestamps: true });
+}, { 
+  timestamps: true,
+  strictPopulate: false // Allow population of fields not in schema (for migration compatibility)
+});
 
 module.exports = mongoose.model('Task', taskSchema);

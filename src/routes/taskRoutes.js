@@ -66,6 +66,80 @@ router.post('/', controller.create);
 
 /**
  * @swagger
+ * /api/tasks/multiple:
+ *   post:
+ *     summary: Create multiple tasks for a stage
+ *     tags: [Tasks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tasks
+ *               - stage
+ *               - onboardingCase
+ *             properties:
+ *               tasks:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/Task'
+ *               stage:
+ *                 type: string
+ *                 description: Stage ID
+ *               onboardingCase:
+ *                 type: string
+ *                 description: Onboarding case ID
+ *     responses:
+ *       201:
+ *         description: Tasks created successfully
+ *       400:
+ *         description: Bad request
+ */
+router.post('/multiple', controller.createMultiple);
+
+/**
+ * @swagger
+ * /api/tasks/stage/{stageId}/add-multiple:
+ *   post:
+ *     summary: Add multiple tasks to a specific stage
+ *     tags: [Tasks]
+ *     parameters:
+ *       - in: path
+ *         name: stageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Stage ID to add tasks to
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tasks
+ *             properties:
+ *               tasks:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/Task'
+ *               createdBy:
+ *                 type: string
+ *                 description: User ID who is creating the tasks
+ *     responses:
+ *       201:
+ *         description: Tasks added to stage successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Stage not found
+ */
+router.post('/stage/:stageId/add-multiple', controller.addMultipleToStage);
+
+/**
+ * @swagger
  * /api/tasks:
  *   get:
  *     summary: Get all tasks with filtering and pagination

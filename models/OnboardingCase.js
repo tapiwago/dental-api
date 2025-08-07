@@ -7,6 +7,8 @@ const onboardingCaseSchema = new mongoose.Schema({
   expectedCompletionDate: { type: Date },
   actualCompletionDate: { type: Date },
   assignedChampion: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  assignedTeam: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Team members assigned to this case
+  assignedTo: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Users assigned to this case (for population compatibility)
   status: { 
     type: String, 
     enum: ['Not Started', 'In Progress', 'On Hold', 'Completed', 'Cancelled'], 
@@ -40,6 +42,9 @@ const onboardingCaseSchema = new mongoose.Schema({
     completedDate: Date,
     status: { type: String, enum: ['Pending', 'Completed', 'Overdue'], default: 'Pending' }
   }]
-}, { timestamps: true });
+}, { 
+  timestamps: true,
+  strictPopulate: false // Allow population of fields not in schema (for migration compatibility)
+});
 
 module.exports = mongoose.model('OnboardingCase', onboardingCaseSchema);

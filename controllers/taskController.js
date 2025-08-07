@@ -17,6 +17,7 @@ exports.create = async (req, res) => {
 
     // Create audit log
     await AuditLog.create({
+      logId: `AUDIT-TASK-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       entityType: 'Task',
       entityId: task._id,
       action: 'CREATE',
@@ -52,6 +53,176 @@ exports.create = async (req, res) => {
       data: populatedTask
     });
   } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.createMultiple = async (req, res) => {
+  try {
+    const { tasks, stage, onboardingCase } = req.body;
+    
+    if (!tasks || !Array.isArray(tasks)) {
+      return res.status(400).json({ error: 'Tasks array is required' });
+    }
+    
+    if (!stage) {
+      return res.status(400).json({ error: 'Stage ID is required' });
+    }
+
+    if (!onboardingCase) {
+      return res.status(400).json({ error: 'Onboarding case ID is required' });
+    }
+
+    // Get current max sequence for the stage
+    const existingTasks = await Task.find({ stage }).sort({ sequence: -1 }).limit(1);
+    let maxSequence = existingTasks.length > 0 ? existingTasks[0].sequence : 0;
+
+    // Prepare tasks with proper sequence numbers
+    const tasksToCreate = tasks.map((taskData, index) => {
+      const taskId = `TASK-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${index}`;
+      
+      return {
+        taskId: taskId,
+        name: taskData.name,
+        description: taskData.description,
+        priority: taskData.priority || 'Medium',
+        status: 'Not Started', // Use valid enum value
+        sequence: maxSequence + index + 1,
+        stageId: stage,
+        onboardingCaseId: onboardingCase,
+        estimatedHours: taskData.estimatedHours || 1,
+        isRequired: taskData.isRequired !== false,
+        createdBy: req.body.createdBy || taskData.createdBy,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+    });
+
+    // Create all tasks
+    const createdTasks = await Task.insertMany(tasksToCreate);
+    
+    // Create audit logs for each task
+    const auditLogs = createdTasks.map((task, index) => ({
+      logId: `AUDIT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${index}`,
+      entityType: 'Task',
+      entityId: task._id,
+      action: 'CREATE',
+      userId: req.body.createdBy || task.createdBy,
+      changes: { created: task.toObject() },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    }));
+    
+    await AuditLog.insertMany(auditLogs);
+    
+    res.status(201).json({
+      success: true,
+      message: `Successfully created ${createdTasks.length} tasks`,
+      data: {
+        tasks: createdTasks,
+        count: createdTasks.length
+      }
+    });
+  } catch (err) {
+    console.error('Error creating multiple tasks:', err);
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.addMultipleToStage = async (req, res) => {
+  try {
+    const { stageId } = req.params;
+    const { tasks } = req.body;
+    
+    if (!tasks || !Array.isArray(tasks)) {
+      return res.status(400).json({ error: 'Tasks array is required' });
+    }
+    
+    if (!stageId) {
+      return res.status(400).json({ error: 'Stage ID is required' });
+    }
+
+    // Verify the stage exists and get the onboarding case
+    const stage = await Stage.findById(stageId);
+    if (!stage) {
+      return res.status(404).json({ error: 'Stage not found' });
+    }
+
+    const onboardingCase = stage.onboardingCaseId;
+
+    // Get current max sequence for the stage
+    const existingTasks = await Task.find({ stageId: stageId }).sort({ sequence: -1 }).limit(1);
+    let maxSequence = existingTasks.length > 0 ? existingTasks[0].sequence : 0;
+
+    // Prepare tasks with proper sequence numbers
+    const tasksToCreate = tasks.map((taskData, index) => {
+      const taskId = `TASK-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${index}`;
+      
+      return {
+        taskId: taskId,
+        name: taskData.name,
+        description: taskData.description,
+        priority: taskData.priority || 'Medium',
+        status: 'Not Started', // Use valid enum value
+        sequence: maxSequence + index + 1,
+        stageId: stageId,
+        onboardingCaseId: onboardingCase,
+        estimatedHours: taskData.estimatedHours || 1,
+        isRequired: taskData.isRequired !== false,
+        createdBy: req.body.createdBy || taskData.createdBy,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+    });
+
+    // Create all tasks
+    const createdTasks = await Task.insertMany(tasksToCreate);
+    
+    // Create audit logs for each task
+    const auditLogs = createdTasks.map((task, index) => ({
+      logId: `AUDIT-STAGE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${index}`,
+      entityType: 'Task',
+      entityId: task._id,
+      action: 'CREATE',
+      userId: req.body.createdBy || task.createdBy,
+      changes: { created: task.toObject() },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    }));
+    
+    await AuditLog.insertMany(auditLogs);
+
+    // Send notifications to assigned users
+    for (const task of createdTasks) {
+      if (task.assignedTo) {
+        await NotificationService.create({
+          title: 'New Task Assigned',
+          message: `You have been assigned a new task: "${task.name}"`,
+          type: 'Assignment',
+          priority: task.priority === 'Critical' ? 'High' : 'Medium',
+          userId: task.assignedTo,
+          relatedEntity: {
+            entityType: 'Task',
+            entityId: task._id
+          }
+        });
+      }
+    }
+    
+    res.status(201).json({
+      success: true,
+      message: `Successfully added ${createdTasks.length} tasks to stage "${stage.name}"`,
+      data: {
+        tasks: createdTasks,
+        count: createdTasks.length,
+        stage: {
+          id: stage._id,
+          name: stage.name
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Error adding multiple tasks to stage:', err);
     res.status(400).json({ error: err.message });
   }
 };
@@ -147,6 +318,7 @@ exports.update = async (req, res) => {
 
     // Create audit log
     await AuditLog.create({
+      logId: `AUDIT-UPDATE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       entityType: 'Task',
       entityId: task._id,
       action: 'UPDATE',
@@ -202,6 +374,7 @@ exports.delete = async (req, res) => {
 
     // Create audit log
     await AuditLog.create({
+      logId: `AUDIT-DELETE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       entityType: 'Task',
       entityId: req.params.id,
       action: 'DELETE',
@@ -253,6 +426,7 @@ exports.updateStatus = async (req, res) => {
 
     // Create audit log
     await AuditLog.create({
+      logId: `AUDIT-STATUS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       entityType: 'Task',
       entityId: task._id,
       action: 'STATUS_UPDATE',
@@ -367,6 +541,7 @@ exports.assignTask = async (req, res) => {
 
     // Create audit log
     await AuditLog.create({
+      logId: `AUDIT-ASSIGN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       entityType: 'Task',
       entityId: task._id,
       action: 'ASSIGN',

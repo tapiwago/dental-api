@@ -7,6 +7,7 @@ const stageSchema = new mongoose.Schema({
   description: { type: String },
   onboardingCaseId: { type: mongoose.Schema.Types.ObjectId, ref: 'OnboardingCase', required: true },
   championId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Stage champion
+  assignedTo: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Users assigned to this stage
   status: { 
     type: String, 
     enum: ['Not Started', 'In Progress', 'Completed', 'On Hold'], 
@@ -30,6 +31,9 @@ const stageSchema = new mongoose.Schema({
   // Audit trail
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   lastModifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
-}, { timestamps: true });
+}, { 
+  timestamps: true,
+  strictPopulate: false // Allow population of fields not in schema (for migration compatibility)
+});
 
 module.exports = mongoose.model('Stage', stageSchema);
