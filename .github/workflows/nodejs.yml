@@ -70,7 +70,11 @@ jobs:
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
             npm install
             npm install -g pm2 || true
-            pm2 start src/app.js --name dental-api || pm2 restart dental-api
+            # Stop the existing process if it exists
+            pm2 stop dental-api || true
+            pm2 delete dental-api || true
+            # Start the process fresh
+            pm2 start src/app.js --name dental-api
             pm2 save
             echo "🚀 Backend deployment completed successfully!"
             echo "API URL: http://134.209.121.112:5000"
