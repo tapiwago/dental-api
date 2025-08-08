@@ -4,7 +4,7 @@ const Task = require('../models/Task');
 const Document = require('../models/Document');
 const User = require('../models/User');
 const Client = require('../models/Client');
-const NotificationService = require('../services/NotificationService');
+const NotificationService = require('../services/notificationService');
 const AuditLog = require('../models/AuditLog');
 
 // Basic CRUD operations
