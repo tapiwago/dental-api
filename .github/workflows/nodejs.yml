@@ -55,7 +55,12 @@ jobs:
             if [ ! -d /root/dental-api ]; then
               git clone https://github.com/tapiwago/dental-api.git /root/dental-api
             else
-              cd /root/dental-api && git pull origin main
+              cd /root/dental-api
+              # Stash any local changes to avoid merge conflicts
+              git stash push -m "Auto-stash before deployment $(date)"
+              # Force fetch and reset to match remote
+              git fetch origin main
+              git reset --hard origin/main
             fi
             cd /root/dental-api
             echo "NODE_ENV=production" > .env
