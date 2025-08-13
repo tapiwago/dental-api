@@ -6,7 +6,7 @@ const auditLogSchema = new mongoose.Schema({
   action: { type: String, required: true }, // 'CREATE', 'UPDATE', 'DELETE', 'VIEW', 'LOGIN', 'LOGOUT'
   entityType: { 
     type: String, 
-    enum: ['OnboardingCase', 'Task', 'Stage', 'Document', 'WorkflowGuide', 'User', 'Client', 'GuideStep', 'CaseGuideLink'],
+    enum: ['OnboardingCase', 'Task', 'Stage', 'Document', 'WorkflowGuide', 'User', 'Client', 'GuideStep', 'CaseGuideLink', 'WorkflowType'],
     required: true 
   },
   entityId: { type: String, required: true },

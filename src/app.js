@@ -4,7 +4,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 require('dotenv').config();
 
-
 // Swagger setup (must be after app is initialized)
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
@@ -136,6 +135,7 @@ const documentRoutes = require('./routes/documentRoutes');
 const workflowGuideRoutes = require('./routes/workflowGuideRoutes');
 const guideStepRoutes = require('./routes/guideStepRoutes');
 const caseGuideLinkRoutes = require('./routes/caseGuideLinkRoutes');
+const workflowTypeRoutes = require('./routes/workflowTypeRoutes');
 
 // System and admin routes
 const notificationRoutes = require('./routes/notificationRoutes');
@@ -188,6 +188,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/workflow-guides', workflowGuideRoutes);
 app.use('/api/guide-steps', guideStepRoutes);
 app.use('/api/case-guide-links', caseGuideLinkRoutes);
+app.use('/api/workflow-types', workflowTypeRoutes);
 
 // System and admin API routes
 app.use('/api/notifications', notificationRoutes);

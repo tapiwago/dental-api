@@ -4,12 +4,71 @@ const Task = require('../models/Task');
 const Document = require('../models/Document');
 const User = require('../models/User');
 const Client = require('../models/Client');
+const WorkflowType = require('../models/WorkflowType');
 const NotificationService = require('../services/notificationService');
 const AuditLog = require('../models/AuditLog');
+
+// Helper function to ensure workflowTypeId is always populated
+const ensureWorkflowTypePopulated = async (cases) => {
+  const casesArray = Array.isArray(cases) ? cases : [cases];
+  const defaultWorkflowType = await WorkflowType.findOne({ isDefault: true });
+  
+  for (let case_ of casesArray) {
+    if (!case_.workflowTypeId || typeof case_.workflowTypeId !== 'object' || !case_.workflowTypeId.name) {
+      // If workflowTypeId is not populated or missing, provide fallback
+      case_.workflowTypeId = defaultWorkflowType || {
+        _id: case_.workflowTypeId || null,
+        name: 'Onboarding',
+        prefix: 'OB'
+      };
+    }
+  }
+  
+  return Array.isArray(cases) ? casesArray : casesArray[0];
+};
 
 // Basic CRUD operations
 exports.create = async (req, res) => {
   try {
+    // Ensure workflowTypeId is provided, use default if not
+    if (!req.body.workflowTypeId) {
+      const defaultWorkflowType = await WorkflowType.findOne({ isDefault: true });
+      if (defaultWorkflowType) {
+        req.body.workflowTypeId = defaultWorkflowType._id;
+      } else {
+        return res.status(400).json({ error: 'No default workflow type found. Please specify a workflowTypeId.' });
+      }
+    }
+
+    // Generate caseId using workflow type prefix
+    if (!req.body.caseId && req.body.workflowTypeId) {
+      const workflowType = await WorkflowType.findById(req.body.workflowTypeId);
+      if (!workflowType) {
+        return res.status(400).json({ error: 'Workflow type not found' });
+      }
+
+      // Find the highest existing number for this prefix
+      const prefix = workflowType.prefix;
+      const regex = new RegExp(`^${prefix}-(\\d+)$`);
+      
+      const lastCase = await OnboardingCase.findOne(
+        { caseId: regex },
+        {},
+        { sort: { caseId: -1 } }
+      );
+
+      let nextNumber = 1;
+      if (lastCase && lastCase.caseId) {
+        const match = lastCase.caseId.match(regex);
+        if (match) {
+          nextNumber = parseInt(match[1]) + 1;
+        }
+      }
+
+      // Generate the new caseId
+      req.body.caseId = `${prefix}-${nextNumber.toString().padStart(4, '0')}`;
+    }
+
     const onboardingCase = new OnboardingCase({
       ...req.body,
       createdBy: req.body.adminId || req.body.createdBy,
@@ -20,6 +79,7 @@ exports.create = async (req, res) => {
     
     // Create audit log
     await AuditLog.create({
+      logId: `AUDIT-OBC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       entityType: 'OnboardingCase',
       entityId: onboardingCase._id,
       action: 'CREATE',
@@ -30,6 +90,7 @@ exports.create = async (req, res) => {
     });
 
     // Send notification to client
+    /*
     if (onboardingCase.clientId) {
       await NotificationService.create({
         title: 'Onboarding Case Created',
@@ -43,10 +104,12 @@ exports.create = async (req, res) => {
         }
       });
     }
+    */
 
     const populatedCase = await OnboardingCase.findById(onboardingCase._id)
       .populate('clientId', 'name email')
-      .populate('createdBy', 'name email');
+      .populate('createdBy', 'name email')
+      .populate('workflowTypeId', 'name prefix');
 
     res.status(201).json({
       success: true,
@@ -84,15 +147,19 @@ exports.getAll = async (req, res) => {
       .populate('clientId', 'name email contactInfo')
       .populate('createdBy', 'name email role')
       .populate('assignedTeam', 'name email role')
+      .populate('workflowTypeId', 'name prefix')
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit));
 
     const total = await OnboardingCase.countDocuments(filter);
 
+    // Ensure all cases have properly populated workflowTypeId
+    const safeCases = await ensureWorkflowTypePopulated(cases);
+
     res.json({
       success: true,
-      data: cases,
+      data: safeCases,
       pagination: {
         currentPage: parseInt(page),
         totalPages: Math.ceil(total / limit),
@@ -111,7 +178,8 @@ exports.getById = async (req, res) => {
       .populate('clientId')
       .populate('createdBy', 'name email role')
       .populate('assignedTeam', 'name email role')
-      .populate('linkedGuides', 'title description category');
+      .populate('linkedGuides', 'title description category')
+      .populate('workflowTypeId', 'name prefix');
 
     if (!onboardingCase) return res.status(404).json({ error: 'Onboarding case not found' });
 
@@ -128,10 +196,13 @@ exports.getById = async (req, res) => {
       .populate('uploadedBy', 'name email')
       .sort({ uploadDate: -1 });
 
+    // Ensure workflowTypeId is properly populated
+    const safeCase = await ensureWorkflowTypePopulated(onboardingCase);
+
     res.json({
       success: true,
       data: {
-        ...onboardingCase.toObject(),
+        ...safeCase.toObject(),
         stages,
         tasks,
         documents,
@@ -161,10 +232,12 @@ exports.update = async (req, res) => {
       { ...req.body, lastModified: new Date() }, 
       { new: true }
     ).populate('clientId', 'name email')
-     .populate('assignedTeam', 'name email role');
+     .populate('assignedTeam', 'name email role')
+     .populate('workflowTypeId', 'name prefix');
 
     // Create audit log
     await AuditLog.create({
+      logId: `AUDIT-OBC-UPD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       entityType: 'OnboardingCase',
       entityId: onboardingCase._id,
       action: 'UPDATE',
@@ -241,7 +314,8 @@ exports.assignTeam = async (req, res) => {
         lastModified: new Date()
       },
       { new: true }
-    ).populate('assignedTeam', 'name email role');
+    ).populate('assignedTeam', 'name email role')
+     .populate('workflowTypeId', 'name prefix');
 
     if (!onboardingCase) return res.status(404).json({ error: 'Onboarding case not found' });
 
@@ -361,6 +435,7 @@ exports.getDashboard = async (req, res) => {
     // Get recent cases
     const recentCases = await OnboardingCase.find()
       .populate('clientId', 'name')
+      .populate('workflowTypeId', 'name prefix')
       .sort({ createdAt: -1 })
       .limit(5);
 
@@ -371,14 +446,16 @@ exports.getDashboard = async (req, res) => {
     const overdueCases = await OnboardingCase.find({
       status: { $in: ['Planning', 'In Progress'] },
       expectedCompletionDate: { $lt: new Date() }
-    }).populate('clientId', 'name');
+    }).populate('clientId', 'name')
+      .populate('workflowTypeId', 'name prefix');
 
     // Role-specific data
     let assignedCases = [];
     if (role !== 'Admin' && userId) {
       assignedCases = await OnboardingCase.find({
         assignedTeam: userId
-      }).populate('clientId', 'name');
+      }).populate('clientId', 'name')
+        .populate('workflowTypeId', 'name prefix');
     }
 
     res.json({
@@ -411,7 +488,8 @@ exports.getProgressReport = async (req, res) => {
   try {
     const onboardingCase = await OnboardingCase.findById(req.params.id)
       .populate('clientId', 'name email')
-      .populate('assignedTeam', 'name email role');
+      .populate('assignedTeam', 'name email role')
+      .populate('workflowTypeId', 'name prefix');
 
     if (!onboardingCase) return res.status(404).json({ error: 'Onboarding case not found' });
 
@@ -535,6 +613,74 @@ exports.sendReminders = async (req, res) => {
       data: {
         overdueTasksCount: overdueTasks.length,
         remindersSent: sentCount
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Migration function to ensure all cases have workflow types
+exports.migrateWorkflowTypes = async (req, res) => {
+  try {
+    // Find all cases without workflowTypeId
+    const casesWithoutWorkflowType = await OnboardingCase.find({ 
+      $or: [
+        { workflowTypeId: { $exists: false } },
+        { workflowTypeId: null }
+      ]
+    });
+
+    if (casesWithoutWorkflowType.length === 0) {
+      return res.json({
+        success: true,
+        message: 'All cases already have workflow types assigned',
+        data: { casesUpdated: 0 }
+      });
+    }
+
+    // Get the default workflow type
+    const defaultWorkflowType = await WorkflowType.findOne({ isDefault: true });
+    if (!defaultWorkflowType) {
+      return res.status(400).json({ error: 'No default workflow type found' });
+    }
+
+    // Update all cases without workflow types
+    const updateResult = await OnboardingCase.updateMany(
+      { 
+        $or: [
+          { workflowTypeId: { $exists: false } },
+          { workflowTypeId: null }
+        ]
+      },
+      { 
+        workflowTypeId: defaultWorkflowType._id,
+        lastModifiedBy: req.body.adminId || req.body.userId
+      }
+    );
+
+    // Create audit log
+    await AuditLog.create({
+      logId: `AUDIT-MIGRATION-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      entityType: 'OnboardingCase',
+      entityId: 'BULK_MIGRATION',
+      action: 'MIGRATE',
+      userId: req.body.adminId || req.body.userId,
+      changes: { 
+        migration: 'Added default workflow type to cases without workflowTypeId',
+        casesUpdated: updateResult.modifiedCount,
+        defaultWorkflowType: defaultWorkflowType.name
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    res.json({
+      success: true,
+      message: `Successfully migrated ${updateResult.modifiedCount} cases to have workflow types`,
+      data: { 
+        casesUpdated: updateResult.modifiedCount,
+        defaultWorkflowType: defaultWorkflowType.name
       }
     });
   } catch (err) {

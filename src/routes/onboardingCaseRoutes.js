@@ -406,4 +406,42 @@ router.get('/:id/progress-report', controller.getProgressReport);
  */
 router.post('/:id/send-reminders', controller.sendReminders);
 
+/**
+ * @swagger
+ * /api/onboarding-cases/migrate-workflow-types:
+ *   post:
+ *     summary: Migrate cases to ensure all have workflow types
+ *     tags: [OnboardingCases]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               adminId:
+ *                 type: string
+ *                 description: Admin user ID for audit logging
+ *     responses:
+ *       200:
+ *         description: Migration completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     casesUpdated:
+ *                       type: integer
+ *                     defaultWorkflowType:
+ *                       type: string
+ */
+router.post('/migrate-workflow-types', controller.migrateWorkflowTypes);
+
 module.exports = router;

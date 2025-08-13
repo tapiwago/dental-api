@@ -8,6 +8,11 @@ const AuditLog = require('../models/AuditLog');
 // Basic CRUD operations
 exports.create = async (req, res) => {
   try {
+    // Generate unique taskId if not provided
+    if (!req.body.taskId) {
+      req.body.taskId = `TASK-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+    
     const task = new Task({
       ...req.body,
       createdBy: req.body.adminId || req.body.createdBy
@@ -74,7 +79,7 @@ exports.createMultiple = async (req, res) => {
     }
 
     // Get current max sequence for the stage
-    const existingTasks = await Task.find({ stage }).sort({ sequence: -1 }).limit(1);
+    const existingTasks = await Task.find({ stageId: stage }).sort({ sequence: -1 }).limit(1);
     let maxSequence = existingTasks.length > 0 ? existingTasks[0].sequence : 0;
 
     // Prepare tasks with proper sequence numbers
@@ -372,16 +377,18 @@ exports.delete = async (req, res) => {
     const task = await Task.findByIdAndDelete(req.params.id);
     if (!task) return res.status(404).json({ error: 'Task not found' });
 
-    // Create audit log
-    await AuditLog.create({
-      logId: `AUDIT-DELETE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      entityType: 'Task',
-      entityId: req.params.id,
-      action: 'DELETE',
-      userId: req.body.deletedBy,
-      changes: { deleted: task.toObject() },
-      ipAddress: req.ip
-    });
+    // Create audit log (only if userId is provided)
+    if (req.body.deletedBy) {
+      await AuditLog.create({
+        logId: `AUDIT-DELETE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        entityType: 'Task',
+        entityId: req.params.id,
+        action: 'DELETE',
+        userId: req.body.deletedBy,
+        changes: { deleted: task.toObject() },
+        ipAddress: req.ip
+      });
+    }
 
     res.json({ 
       success: true,

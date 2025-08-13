@@ -1,11 +1,18 @@
 const Stage = require('../models/Stage');
+const AuditLog = require('../models/AuditLog');
 
 exports.create = async (req, res) => {
   try {
+    // Generate unique stageId if not provided
+    if (!req.body.stageId) {
+      req.body.stageId = `STAGE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+    
     const stage = new Stage(req.body);
     await stage.save();
     res.status(201).json(stage);
   } catch (err) {
+    console.error('Stage creation error:', err);
     res.status(400).json({ error: err.message });
   }
 };
@@ -185,8 +192,25 @@ exports.update = async (req, res) => {
 exports.delete = async (req, res) => {
   try {
     const stage = await Stage.findByIdAndDelete(req.params.id);
-    if (!stage) return res.status(404).json({ error: 'Not found' });
-    res.json({ message: 'Deleted' });
+    if (!stage) return res.status(404).json({ error: 'Stage not found' });
+
+    // Create audit log (only if userId is provided)
+    if (req.body.deletedBy) {
+      await AuditLog.create({
+        logId: `AUDIT-DELETE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        entityType: 'Stage',
+        entityId: req.params.id,
+        action: 'DELETE',
+        userId: req.body.deletedBy,
+        changes: { deleted: stage.toObject() },
+        ipAddress: req.ip
+      });
+    }
+
+    res.json({ 
+      success: true,
+      message: 'Stage deleted successfully' 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
